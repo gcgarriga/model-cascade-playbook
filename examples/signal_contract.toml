@@ -1,0 +1,50 @@
+# A signal contract, as a file you can copy.
+#
+# Fill this in before a signal drives any routing decision. Every field below
+# exists because leaving it implicit is a way cascades go wrong: an unstated
+# polarity inverts a metric, an unstated missing-value rule silently changes
+# the population, and an unstated cost hides the overhead the routing has to
+# repay.
+#
+# Parse it with `tomllib` (standard library, Python 3.11+):
+#
+#     import tomllib
+#     with open("signal_contract.toml", "rb") as handle:
+#         contract = tomllib.load(handle)
+
+[signal]
+name = "small-tier confidence"
+# When the signal exists at all. A signal that is sometimes absent needs a
+# policy for absence, not an average.
+available_when = "the small tier returns a candidate"
+range = "finite number in [0, 1]"
+# One of: "higher means retain", "higher means escalate", or an explicit
+# mapping for a categorical score. State it before defining any metric, so the
+# positive class in the metric matches the positive class in the policy.
+polarity = "higher means retain"
+aggregation = "one score per request"
+
+[policy]
+threshold = 0.7
+# How the cut point was chosen. "Chosen after looking at the results" is an
+# honest answer, and it means the number is not evidence.
+threshold_chosen_on = "calibration split, frozen before held-out evaluation"
+missing_policy = "escalate and record missing-signal"
+malformed_policy = "escalate and record malformed-signal"
+
+[cost]
+# What obtaining the signal costs, per request, on top of the small attempt.
+# A signal derived from samples the system already pays for is zero here only
+# because those samples are counted in the small tier.
+extra_calls = 1
+extra_tokens = 0
+extra_seconds = 0.0
+
+[validity]
+# Distinct values actually observed. A score that looks continuous but takes
+# three values gives a threshold two usable cut points.
+distinct_values_observed = 0
+missing_rate = 0.0
+malformed_rate = 0.0
+# How you checked that the signal tracks competence rather than memorization.
+exposure_split = "release date against the small model's training cutoff"
